@@ -3,6 +3,12 @@ import { useParams } from 'react-router-dom';
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
 import io from "socket.io-client";
+import '../style.css';
+import { useHistory } from "react-router-dom";
+
+import { Layout, Button, Typography, PageHeader, Descriptions, message } from "antd";
+
+const { Title } = Typography;
 
 const TOOLBAR_OPTIONS = [
     [{ size: [] }],
@@ -17,13 +23,16 @@ const TOOLBAR_OPTIONS = [
 ]
 
 function TextEditor() {
+    const history = useHistory();
     const [socket, setSocket] = useState();
     const [quill, setQuill] = useState();
     const [documentFound, setDocumentFound] = useState(true);
+    const [documentTitle, setDocumentTitle] = useState();
+    const [documentSaving, setDocumentSaving] = useState(false);
     const { id: documentId } = useParams();
 
     useEffect(() => {
-        const socketState = io('http://localhost:3001');
+        const socketState = io('ws://localhost:3001');
         setSocket(socketState);
     }, [])
 
@@ -32,7 +41,8 @@ function TextEditor() {
 
         socket.once("load-document", document => {
             quill.enable();
-            quill.setContents(document);
+            quill.setContents(document.data);
+            setDocumentTitle(document.name);
         });
 
         socket.once("document-not-found", () => {
@@ -80,25 +90,45 @@ function TextEditor() {
         q.disable();
         q.setText("Loading...");
         setQuill(q);
+
+        q.getModule("toolbar").container.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+        });
     }, []);
 
-    function saveDocument() {
+    async function saveDocument() {
         socket.emit('save-document', quill.getContents());
+        setDocumentSaving(true);
+        socket.once("save-successful", () => {
+            setDocumentSaving(false)
+            message.success("Document saved successfully");
+        });
     }
 
     if (documentFound) {
         return (
-            <>
-                <button onClick={saveDocument}>Save Document</button>
+            <Layout>
+                <PageHeader
+                    title={documentTitle}
+                    extra={[
+                        <Button loading={documentSaving} onClick={saveDocument} type="primary">Save Document</Button>
+                    ]}
+                    ghost={false}
+                    onBack={() => history.push("/")}
+                >
+                    <Descriptions size="small">
+                        <Descriptions.Item label="Author">Nick Tenebruso</Descriptions.Item>
+                    </Descriptions>
+                </PageHeader>
                 <div className="container" ref={wrapperRef}></div>
-            </>
+            </Layout>
         );
     } else {
         return (
             <div>Document was not found</div>
         )
     }
-    
+
 }
 
 export default TextEditor;

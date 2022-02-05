@@ -4,10 +4,6 @@
     box-sizing: border-box;
 }
 
-body {
-    background: #f3f3f3;
-}
-
 .container .ql-editor {
     width: 8.5in;
     min-height: 11in;
@@ -19,6 +15,7 @@ body {
 
 .container .ql-editor *::selection {
     background: #a2b4e480;
+    color: unset;
 }
 
 .container .ql-container {
