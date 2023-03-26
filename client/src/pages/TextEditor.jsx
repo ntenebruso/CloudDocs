@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from 'react-router-dom';
+import { useParams } from "react-router-dom";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
+import "../plugins/cursors.css";
 import io from "socket.io-client";
-import '../style.css';
-import { useHistory } from "react-router-dom";
+import "../style.css";
+import QuillCursors from "../plugins/Cursors";
+import { useNavigate } from "react-router-dom";
 
-import { Layout, Button, Typography, PageHeader, Descriptions, message } from "antd";
+Quill.register("modules/cursors", QuillCursors);
+
+import { Layout, Typography, message } from "antd";
 
 const { Title } = Typography;
 
@@ -20,10 +24,10 @@ const TOOLBAR_OPTIONS = [
     [{ align: [] }],
     ["image", "blockquote", "link", "code-block"],
     ["clean"],
-]
+];
 
 function TextEditor() {
-    const history = useHistory();
+    const navigate = useNavigate();
     const [socket, setSocket] = useState();
     const [quill, setQuill] = useState();
     const [documentFound, setDocumentFound] = useState(true);
@@ -32,14 +36,14 @@ function TextEditor() {
     const { id: documentId } = useParams();
 
     useEffect(() => {
-        const socketState = io('ws://localhost:3001');
+        const socketState = io("ws://localhost:3001");
         setSocket(socketState);
-    }, [])
+    }, []);
 
     useEffect(() => {
         if (socket == null) return;
 
-        socket.once("load-document", document => {
+        socket.once("load-document", (document) => {
             quill.enable();
             quill.setContents(document.data);
             setDocumentTitle(document.name);
@@ -47,24 +51,24 @@ function TextEditor() {
 
         socket.once("document-not-found", () => {
             setDocumentFound(false);
-        })
+        });
 
         socket.emit("get-document", documentId);
-    }, [socket, documentId])
+    }, [socket, documentId]);
 
     useEffect(() => {
         if (socket == null || quill == null) return;
 
-        const handler = delta => {
+        const handler = (delta) => {
             quill.updateContents(delta);
-        }
+        };
 
         socket.on("receive-changes", handler);
 
         return () => {
             socket.off("receive-changes", handler);
-        }
-    }, [socket, quill, documentId])
+        };
+    }, [socket, quill, documentId]);
 
     useEffect(() => {
         if (socket == null || quill == null) return;
@@ -72,21 +76,31 @@ function TextEditor() {
         const handler = (delta, oldDelta, source) => {
             if (source !== "user") return;
             socket.emit("send-changes", delta);
-        }
+        };
 
         quill.on("text-change", handler);
 
-        return () => {
-            quill.off("text-change", handler)
-        }
-    }, [socket, quill, documentId])
+        quill.on("editor-change", (eventName, ...args) => {
+            if (eventName == "selection-change") {
+                quill.getModule("cursors").moveCursor("test1", args[0]);
+            }
+        });
 
-    const wrapperRef = useCallback(wrapper => {
-        if (wrapper == null) return
-        wrapper.innerHTML = '';
-        const editor = document.createElement('div');
+        return () => {
+            quill.off("text-change", handler);
+        };
+    }, [socket, quill, documentId]);
+
+    const wrapperRef = useCallback((wrapper) => {
+        if (wrapper == null) return;
+        wrapper.innerHTML = "";
+        const editor = document.createElement("div");
         wrapper.append(editor);
-        const q = new Quill(editor, { theme: 'snow', modules: { toolbar: TOOLBAR_OPTIONS } });
+        const q = new Quill(editor, {
+            theme: "snow",
+            modules: { toolbar: TOOLBAR_OPTIONS, cursors: true },
+        });
+        q.getModule("cursors").createCursor("test1", "black");
         q.disable();
         q.setText("Loading...");
         setQuill(q);
@@ -97,10 +111,10 @@ function TextEditor() {
     }, []);
 
     async function saveDocument() {
-        socket.emit('save-document', quill.getContents());
+        socket.emit("save-document", quill.getContents());
         setDocumentSaving(true);
         socket.once("save-successful", () => {
-            setDocumentSaving(false)
+            setDocumentSaving(false);
             message.success("Document saved successfully");
         });
     }
@@ -108,7 +122,7 @@ function TextEditor() {
     if (documentFound) {
         return (
             <Layout>
-                <PageHeader
+                {/* <PageHeader
                     title={documentTitle}
                     extra={[
                         <Button loading={documentSaving} onClick={saveDocument} type="primary">Save Document</Button>
@@ -119,16 +133,13 @@ function TextEditor() {
                     <Descriptions size="small">
                         <Descriptions.Item label="Author">Nick Tenebruso</Descriptions.Item>
                     </Descriptions>
-                </PageHeader>
+                </PageHeader> */}
                 <div className="container" ref={wrapperRef}></div>
             </Layout>
         );
     } else {
-        return (
-            <div>Document was not found</div>
-        )
+        return <div>Document was not found</div>;
     }
-
 }
 
 export default TextEditor;
