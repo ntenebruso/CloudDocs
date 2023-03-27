@@ -1,18 +1,39 @@
-import React, { useState, useEffect } from "react";
+import { useRef, useContext } from "react";
+import { UserContext } from "../UserContext";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-function Login({onSubmit, history}) {
-    const [loginUsername, setLoginUsername] = useState();
-    const [loginPassword, setLoginPassword] = useState();
+function Login() {
+    const username = useRef(null);
+    const password = useRef(null);
+    const navigate = useNavigate();
+
+    const { setUser } = useContext(UserContext);
+
+    function logIn() {
+        axios
+            .post(
+                "http://localhost:3001/api/login",
+                {
+                    username: username.current.value,
+                    password: password.current.value,
+                },
+                { withCredentials: true }
+            )
+            .then((res) => {
+                setUser(res.data.user);
+                navigate("/");
+            });
+    }
 
     return (
         <>
             <h1>Log in</h1>
-            <input placeholder="username" onChange={e => setLoginUsername(e.target.value)} />
-            <input placeholder="password" onChange={e => setLoginPassword(e.target.value)} />
-            <button onClick={() => {onSubmit(loginUsername, loginPassword)}}>Log In</button>
+            <input placeholder="username" ref={username} />
+            <input placeholder="password" ref={password} />
+            <button onClick={logIn}>Log In</button>
         </>
-    )
+    );
 }
 
 export default Login;

@@ -10,7 +10,7 @@ import { Table, Button, Modal, Input } from "antd";
 
 export default function Dashboard() {
     const navigate = useNavigate();
-    const user = useContext(UserContext);
+    const { user } = useContext(UserContext);
     const [socket, setSocket] = useState();
     const [documents, setDocuments] = useState();
     const [modalOpen, setModalOpen] = useState(false);
@@ -24,7 +24,7 @@ export default function Dashboard() {
 
     useEffect(() => {
         axios
-            .get("http://localhost:3001/api/user-documents", {
+            .get("http://localhost:3001/api/documents/me", {
                 withCredentials: true,
             })
             .then((res) => {

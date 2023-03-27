@@ -1,4 +1,4 @@
-import React, { useEffect, createContext, useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import TextEditor from "./pages/TextEditor.jsx";
 import Login from "./pages/Login";
@@ -8,7 +8,6 @@ import { UserContext } from "./UserContext";
 import "antd/dist/reset.css";
 
 function App() {
-    const [loggedIn, setLoggedIn] = useState(false);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -16,46 +15,21 @@ function App() {
         axios
             .get("http://localhost:3001/api/user", { withCredentials: true })
             .then((res) => {
-                if (res.data.loggedIn) {
-                    setUser(res.data.user);
-                    setLoggedIn(true);
-                } else {
-                    setLoggedIn(false);
-                }
-                console.log(res.data);
+                setUser(res.data.user);
                 setLoading(false);
             });
     }, []);
 
-    function logIn(username, password) {
-        axios
-            .post(
-                "http://localhost:3001/api/login",
-                {
-                    username,
-                    password,
-                },
-                { withCredentials: true }
-            )
-            .then((res) => {
-                if (res.data.success == true) {
-                    setUser(res.data.user);
-                    setLoggedIn(true);
-                    window.location.href = "/";
-                }
-            });
-    }
-
     function ProtectedRoute({ children, ...props }) {
         if (!loading) {
-            return loggedIn ? children : <Navigate to="/login" />;
+            return user ? children : <Navigate to="/login" />;
         } else {
             return <>Loading page...</>;
         }
     }
 
     return (
-        <UserContext.Provider value={user}>
+        <UserContext.Provider value={{ user, setUser }}>
             <BrowserRouter>
                 <Routes>
                     <Route
@@ -68,13 +42,7 @@ function App() {
                     ></Route>
                     <Route
                         path="/login"
-                        element={
-                            loggedIn ? (
-                                <Navigate to="/" />
-                            ) : (
-                                <Login onSubmit={logIn} />
-                            )
-                        }
+                        element={user ? <Navigate to="/" /> : <Login />}
                     />
                     <Route
                         path="/document/:id"

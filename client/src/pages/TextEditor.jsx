@@ -10,8 +10,9 @@ import { useNavigate } from "react-router-dom";
 
 Quill.register("modules/cursors", QuillCursors);
 
-import { Layout, Typography, message } from "antd";
+import { Layout, Typography, Button, message } from "antd";
 
+const { Content } = Layout;
 const { Title } = Typography;
 
 const TOOLBAR_OPTIONS = [
@@ -100,7 +101,7 @@ function TextEditor() {
             theme: "snow",
             modules: { toolbar: TOOLBAR_OPTIONS, cursors: true },
         });
-        q.getModule("cursors").createCursor("test1", "black");
+        q.getModule("cursors").createCursor("test1", "red");
         q.disable();
         q.setText("Loading...");
         setQuill(q);
@@ -134,6 +135,29 @@ function TextEditor() {
                         <Descriptions.Item label="Author">Nick Tenebruso</Descriptions.Item>
                     </Descriptions>
                 </PageHeader> */}
+                <Content
+                    style={{
+                        backgroundColor: "#fff",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "10px 40px",
+                    }}
+                >
+                    <Title level={2}>{documentTitle}</Title>
+                    <div style={{ display: "flex", columnGap: "10px" }}>
+                        <Button onClick={() => navigate(-1)}>
+                            Back to home
+                        </Button>
+                        <Button
+                            loading={documentSaving}
+                            onClick={saveDocument}
+                            type="primary"
+                        >
+                            Save Document
+                        </Button>
+                    </div>
+                </Content>
                 <div className="container" ref={wrapperRef}></div>
             </Layout>
         );

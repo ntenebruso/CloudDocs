@@ -1,4 +1,6 @@
 .ql-caret {
     position: absolute;
-    width: 10px;
+    width: 3px;
+    border-radius: 2px;
+    pointer-events: none;
 }
