@@ -29,20 +29,18 @@ const TOOLBAR_OPTIONS = [
 
 function TextEditor() {
     const navigate = useNavigate();
-    const [socket, setSocket] = useState();
+
     const [quill, setQuill] = useState();
     const [documentFound, setDocumentFound] = useState(true);
     const [documentTitle, setDocumentTitle] = useState();
     const [documentSaving, setDocumentSaving] = useState(false);
     const { id: documentId } = useParams();
 
-    useEffect(() => {
-        const socketState = io("ws://localhost:3001");
-        setSocket(socketState);
-    }, []);
+    const socket = io("ws://localhost:3001");
 
+    // Initial document loading
     useEffect(() => {
-        if (socket == null) return;
+        if (!quill) return;
 
         socket.once("load-document", (document) => {
             quill.enable();
@@ -55,42 +53,46 @@ function TextEditor() {
         });
 
         socket.emit("get-document", documentId);
-    }, [socket, documentId]);
+    }, [quill, documentId]);
 
+    // Receiving changes
     useEffect(() => {
-        if (socket == null || quill == null) return;
+        if (!quill) return;
 
-        const handler = (delta) => {
+        const onReceiveChanges = (delta) => {
             quill.updateContents(delta);
         };
 
-        socket.on("receive-changes", handler);
+        socket.on("receive-changes", onReceiveChanges);
 
         return () => {
-            socket.off("receive-changes", handler);
+            socket.off("receive-changes", onReceiveChanges);
         };
-    }, [socket, quill, documentId]);
+    }, [quill, documentId]);
 
+    // Sending changes
     useEffect(() => {
-        if (socket == null || quill == null) return;
+        if (!quill) return;
 
-        const handler = (delta, oldDelta, source) => {
+        const onTextChange = (delta, oldDelta, source) => {
             if (source !== "user") return;
             socket.emit("send-changes", delta);
         };
 
-        quill.on("text-change", handler);
-
-        quill.on("editor-change", (eventName, ...args) => {
+        const onEditorChange = (eventName, ...args) => {
             if (eventName == "selection-change") {
                 quill.getModule("cursors").moveCursor("test1", args[0]);
             }
-        });
+        };
+
+        quill.on("text-change", onTextChange);
+        quill.on("editor-change", onEditorChange);
 
         return () => {
-            quill.off("text-change", handler);
+            quill.off("text-change", onTextChange);
+            quill.on("editor-change", onEditorChange);
         };
-    }, [socket, quill, documentId]);
+    }, [quill, documentId]);
 
     const wrapperRef = useCallback((wrapper) => {
         if (wrapper == null) return;
@@ -101,14 +103,9 @@ function TextEditor() {
             theme: "snow",
             modules: { toolbar: TOOLBAR_OPTIONS, cursors: true },
         });
-        q.getModule("cursors").createCursor("test1", "red");
         q.disable();
         q.setText("Loading...");
         setQuill(q);
-
-        q.getModule("toolbar").container.addEventListener("mousedown", (e) => {
-            e.preventDefault();
-        });
     }, []);
 
     async function saveDocument() {
