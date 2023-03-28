@@ -5,7 +5,7 @@ const Document = require("./models/Document");
 const mongoose = require("mongoose");
 
 router.post("/login", passport.authenticate("local"), function (req, res) {
-    res.send({ success: true });
+    res.send({ success: true, user: req.user });
 });
 
 router.get("/user", checkLoggedIn, async function (req, res) {
